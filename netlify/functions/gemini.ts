@@ -1,86 +1,88 @@
 import type { Handler, HandlerEvent } from "@netlify/functions";
 
-// This is required for Netlify functions to work with web streams.
-// 'require' is available in the Netlify Functions runtime.
-declare const require: (module: string) => any;
-if (typeof ReadableStream === 'undefined') {
-    (globalThis as any).ReadableStream = require('web-streams-polyfill/ponyfill/ReadableStream');
+// Polyfill de ReadableStream si no existe en el entorno
+if (typeof ReadableStream === "undefined") {
+  const { ReadableStream: PolyfillReadableStream } = await import("web-streams-polyfill/ponyfill");
+  (globalThis as any).ReadableStream = PolyfillReadableStream;
 }
 
-// Dynamically import @google/genai. This is a common pattern for ESM modules in CJS environments.
-// We are doing this *outside* the handler to leverage function instance reuse (caching).
-// This is the key performance optimization.
-const genAIModule = await import('@google/genai');
-const { GoogleGenAI } = genAIModule;
+let ai: any | null = null;
 
-// Initialize the client outside the handler.
-// This ensures that the client is created only once per function instance (on cold start).
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Inicializa el cliente de Google Gemini solo una vez
+async function getClient() {
+  if (!ai) {
+    const genAIModule = await import("@google/genai");
+    const { GoogleGenAI } = genAIModule;
+    ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  }
+  return ai;
+}
 
 const handler: Handler = async (event: HandlerEvent) => {
-    if (event.httpMethod !== 'POST') {
-        return {
-            statusCode: 405,
-            body: JSON.stringify({ error: 'Method Not Allowed' }),
-        };
+  if (event.httpMethod !== "POST") {
+    return {
+      statusCode: 405,
+      body: JSON.stringify({ error: "Method Not Allowed" }),
+    };
+  }
+
+  try {
+    const { action, params } = JSON.parse(event.body || "{}");
+
+    if (!action || !params) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ error: "Missing action or params" }),
+      };
     }
 
-    try {
-        const { action, params } = JSON.parse(event.body || '{}');
+    const client = await getClient();
 
-        if (!action || !params) {
-            return {
-                statusCode: 400,
-                body: JSON.stringify({ error: 'Missing action or params' }),
-            };
-        }
-
-        switch (action) {
-            case 'generateContent': {
-                const response = await ai.models.generateContent(params);
-                return {
-                    statusCode: 200,
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(response),
-                };
-            }
-            case 'generateContentStream': {
-                 const stream = await ai.models.generateContentStream(params);
-
-                // For streaming responses with Netlify Functions, we need to return a ReadableStream.
-                const readable = new ReadableStream({
-                    async start(controller) {
-                        const encoder = new TextEncoder();
-                        for await (const chunk of stream) {
-                            // Each chunk is a GenerateContentResponse. We'll send it as a JSON string followed by a newline.
-                            controller.enqueue(encoder.encode(JSON.stringify(chunk) + '\n'));
-                        }
-                        controller.close();
-                    }
-                });
-
-                return {
-                    statusCode: 200,
-                    headers: { 
-                        'Content-Type': 'application/octet-stream',
-                    },
-                    // The body needs to be a stream
-                    body: readable as any,
-                };
-            }
-            default:
-                return {
-                    statusCode: 400,
-                    body: JSON.stringify({ error: `Unknown action: ${action}` }),
-                };
-        }
-    } catch (error: any) {
-        console.error('Error processing Gemini request:', error);
+    switch (action) {
+      case "generateContent": {
+        const response = await client.models.generateContent(params);
         return {
-            statusCode: 500,
-            body: JSON.stringify({ error: error.message || 'An internal server error occurred.' }),
+          statusCode: 200,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(response),
+        };
+      }
+
+      case "generateContentStream": {
+        const stream = await client.models.generateContentStream(params);
+
+        const readable = new ReadableStream({
+          async start(controller) {
+            const encoder = new TextEncoder();
+            for await (const chunk of stream) {
+              controller.enqueue(encoder.encode(JSON.stringify(chunk) + "\n"));
+            }
+            controller.close();
+          },
+        });
+
+        return {
+          statusCode: 200,
+          headers: { "Content-Type": "application/octet-stream" },
+          body: readable as any,
+        };
+      }
+
+      default:
+        return {
+          statusCode: 400,
+          body: JSON.stringify({ error: `Unknown action: ${action}` }),
         };
     }
+  } catch (error: any) {
+    console.error("Error processing Gemini request:", error);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({
+        error: error.message || "An internal server error occurred.",
+      }),
+    };
+  }
 };
 
 export { handler };
