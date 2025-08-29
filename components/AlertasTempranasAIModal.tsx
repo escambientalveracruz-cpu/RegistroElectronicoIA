@@ -388,27 +388,37 @@ const AlertasTempranasAIModal: React.FC<AlertasTempranasAIModalProps> = ({ isOpe
                                     <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-3">Estado del Proceso</h3>
                                     <div className="space-y-3">
                                         {seguimientoItems.map(item => (
-                                            <label key={item.key} className="flex items-start p-3 bg-slate-50 dark:bg-slate-700/50 rounded-md cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-600/50">
-                                                <input
-                                                    type="radio"
-                                                    name="estadoAlerta"
-                                                    value={item.key}
-                                                    checked={estadoAlerta === item.key}
-                                                    onChange={(e) => setEstadoAlerta(e.target.value)}
-                                                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 mt-1"
-                                                />
-                                                <span className="ml-3 text-sm">
-                                                    <strong className="font-semibold text-slate-800 dark:text-slate-100">{item.key}:</strong>
-                                                    <span className="text-slate-600 dark:text-slate-300"> {item.text}</span>
-                                                </span>
-                                            </label>
+                                            <div key={item.key}>
+                                                <label className="flex items-start p-3 bg-slate-50 dark:bg-slate-700/50 rounded-md cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-600/50">
+                                                    <input
+                                                        type="radio"
+                                                        name="estadoAlerta"
+                                                        value={item.key}
+                                                        checked={estadoAlerta === item.key}
+                                                        onChange={(e) => setEstadoAlerta(e.target.value)}
+                                                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 mt-1"
+                                                    />
+                                                    <span className="ml-3 text-sm">
+                                                        <strong className="font-semibold text-slate-800 dark:text-slate-100">{item.key}:</strong>
+                                                        <span className="text-slate-600 dark:text-slate-300"> {item.text}</span>
+                                                    </span>
+                                                </label>
+                                                {item.key === 'En proceso' && estadoAlerta === 'En proceso' && (
+                                                    <div className="mt-2 p-3 text-sm text-blue-800 bg-blue-100 dark:text-blue-200 dark:bg-blue-900/40 rounded-lg w-full flex items-start gap-3 animate-fade-in">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                          <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                        </svg>
+                                                        <p>Para documentar el progreso, utilice la <strong>Bitácora de Contacto</strong> (más abajo) y elabore un <strong>Plan de Atención</strong> en el Paso 3.</p>
+                                                    </div>
+                                                )}
+                                            </div>
                                         ))}
                                     </div>
                                     {estadoAlerta === 'Referida' && (
-                                        <div className="mt-4"><label className="form-label">Institución Referida</label><input type="text" value={institucionReferida} onChange={e => setInstitucionReferida(e.target.value)} className="w-full form-input" placeholder="Ej: PANI, IAFA, Equipo Interdisciplinario..." /></div>
+                                        <div className="mt-4 animate-fade-in"><label className="form-label">Institución Referida</label><input type="text" value={institucionReferida} onChange={e => setInstitucionReferida(e.target.value)} className="w-full form-input" placeholder="Ej: PANI, IAFA, Equipo Interdisciplinario..." /></div>
                                     )}
                                      {estadoAlerta === 'Cerrada' && (
-                                        <div className="mt-4"><label className="form-label">Justificación de Cierre</label><textarea value={justificacionEliminada} onChange={e => setJustificacionEliminada(e.target.value)} rows={3} className="w-full form-input" placeholder="Describa el motivo del cierre del caso..."></textarea></div>
+                                        <div className="mt-4 animate-fade-in"><label className="form-label">Justificación de Cierre</label><textarea value={justificacionEliminada} onChange={e => setJustificacionEliminada(e.target.value)} rows={3} className="w-full form-input" placeholder="Describa el motivo del cierre del caso..."></textarea></div>
                                     )}
                                 </div>
                                 <div>
@@ -517,6 +527,8 @@ const AlertasTempranasAIModal: React.FC<AlertasTempranasAIModalProps> = ({ isOpe
                     .form-label{display:block;font-size:0.875rem;font-weight:500;color:rgb(71 85 105);margin-bottom:0.25rem}.dark .form-label{color:rgb(203 213 225)}
                     .btn-primary{padding:0.5rem 1rem;font-weight:600;border-radius:0.375rem;background-color:rgb(99 102 241);color:white;transition:background-color 0.2s}.btn-primary:hover{background-color:rgb(79 70 229)}.btn-primary:disabled{opacity:0.6;cursor:not-allowed}
                     .btn-secondary{padding:0.5rem 1rem;font-weight:600;border-radius:0.375rem;background-color:rgb(226 232 240);color:rgb(51 65 85);transition:background-color 0.2s}.dark .btn-secondary{background-color:rgb(71 85 105);color:rgb(226 232 240)}.btn-secondary:hover{background-color:rgb(203 213 225)}.dark .btn-secondary:hover{background-color:rgb(100 116 139)}.btn-secondary:disabled{opacity:0.6;cursor:not-allowed}
+                    .animate-fade-in { animation: fadeIn 0.3s ease-in-out; }
+                    @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
                 `}</style>
             </div>
         </div>
