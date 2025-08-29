@@ -1,24 +1,26 @@
 import type { Handler, HandlerEvent } from "@netlify/functions";
 
-// Polyfill de ReadableStream si no existe en el entorno
-if (typeof ReadableStream === "undefined") {
-  const { ReadableStream: PolyfillReadableStream } = await import("web-streams-polyfill/ponyfill");
-  (globalThis as any).ReadableStream = PolyfillReadableStream;
-}
-
-let ai: any | null = null;
-
-// Inicializa el cliente de Google Gemini solo una vez
-async function getClient() {
-  if (!ai) {
-    const genAIModule = await import("@google/genai");
-    const { GoogleGenAI } = genAIModule;
-    ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Polyfill para ReadableStream
+let PolyfillReadableStream: any;
+try {
+  const mod = require("web-streams-polyfill/ponyfill");
+  PolyfillReadableStream = mod.ReadableStream;
+  if (typeof ReadableStream === "undefined") {
+    (globalThis as any).ReadableStream = PolyfillReadableStream;
   }
-  return ai;
+} catch (err) {
+  console.error("No se pudo cargar polyfill de streams:", err);
 }
+
+// Requerir dinámicamente GoogleGenAI en el handler
+let ai: any;
 
 const handler: Handler = async (event: HandlerEvent) => {
+  if (!ai) {
+    const { GoogleGenAI } = await import("@google/genai");
+    ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  }
+
   if (event.httpMethod !== "POST") {
     return {
       statusCode: 405,
@@ -29,18 +31,9 @@ const handler: Handler = async (event: HandlerEvent) => {
   try {
     const { action, params } = JSON.parse(event.body || "{}");
 
-    if (!action || !params) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({ error: "Missing action or params" }),
-      };
-    }
-
-    const client = await getClient();
-
     switch (action) {
       case "generateContent": {
-        const response = await client.models.generateContent(params);
+        const response = await ai.models.generateContent(params);
         return {
           statusCode: 200,
           headers: { "Content-Type": "application/json" },
@@ -49,13 +42,14 @@ const handler: Handler = async (event: HandlerEvent) => {
       }
 
       case "generateContentStream": {
-        const stream = await client.models.generateContentStream(params);
-
+        const stream = await ai.models.generateContentStream(params);
         const readable = new ReadableStream({
           async start(controller) {
             const encoder = new TextEncoder();
             for await (const chunk of stream) {
-              controller.enqueue(encoder.encode(JSON.stringify(chunk) + "\n"));
+              controller.enqueue(
+                encoder.encode(JSON.stringify(chunk) + "\n")
+              );
             }
             controller.close();
           },
@@ -75,12 +69,10 @@ const handler: Handler = async (event: HandlerEvent) => {
         };
     }
   } catch (error: any) {
-    console.error("Error processing Gemini request:", error);
+    console.error("Error en Gemini:", error);
     return {
       statusCode: 500,
-      body: JSON.stringify({
-        error: error.message || "An internal server error occurred.",
-      }),
+      body: JSON.stringify({ error: error.message }),
     };
   }
 };
