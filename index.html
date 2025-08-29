@@ -5,31 +5,53 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Estudiante AI</title>
 
-    <!-- Tailwind CDN -->
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-      tailwind.config = { darkMode: 'class' }
+      tailwind.config = { darkMode: "class" }
     </script>
     <script>
       // Aplica dark mode antes del render
       if (
-        localStorage.getItem('theme') === 'dark' ||
-        (!('theme' in localStorage) &&
-          window.matchMedia('(prefers-color-scheme: dark)').matches)
+        localStorage.getItem("theme") === "dark" ||
+        (!("theme" in localStorage) &&
+          window.matchMedia("(prefers-color-scheme: dark)").matches)
       ) {
-        document.documentElement.classList.add('dark')
+        document.documentElement.classList.add("dark")
       } else {
-        document.documentElement.classList.remove('dark')
+        document.documentElement.classList.remove("dark")
       }
     </script>
 
-    <!-- Si tu CSS está en la raíz -->
+    <!-- Estilos propios -->
     <link rel="stylesheet" href="/index.css" />
   </head>
-  <body>
+  <body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
     <div id="root"></div>
 
-    <!-- ✅ Entrada correcta: usas index.tsx en la raíz -->
-    <script type="module" src="/index.tsx"></script>
+    <!-- ✅ Babel Standalone para transpilar TSX/JSX en el navegador -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- ✅ App principal -->
+    <script type="text/babel" data-type="module" data-presets="typescript,react">
+      import React from "https://esm.sh/react";
+      import ReactDOM from "https://esm.sh/react-dom/client";
+
+      function App() {
+        return (
+          <div className="p-6 text-center">
+            <h1 className="text-3xl font-bold mb-4">
+              🎓 Estudiante AI
+            </h1>
+            <p className="text-lg text-gray-600 dark:text-gray-300">
+              Bienvenido a la plataforma con Google Gemini, Firebase y Tailwind.
+            </p>
+          </div>
+        );
+      }
+
+      const root = ReactDOM.createRoot(document.getElementById("root"));
+      root.render(<App />);
+    </script>
   </body>
 </html>
